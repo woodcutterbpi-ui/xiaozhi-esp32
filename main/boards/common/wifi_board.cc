@@ -349,6 +349,9 @@ std::string WifiBoard::GetDeviceStatusJson() {
         cJSON_AddItemToObject(root, "chip", chip);
     }
 
+    // Local voice mode
+    cJSON_AddBoolToObject(root, "local_voice_mode", Application::GetInstance().IsLocalVoiceMode());
+
     auto str = cJSON_PrintUnformatted(root);
     std::string result(str);
     cJSON_free(str);

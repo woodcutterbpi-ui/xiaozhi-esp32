@@ -54,6 +54,8 @@
         "HELLO_MY_FRIEND": "你好，我的朋友！",
         "CONNECTION_SUCCESSFUL": "连接成功",
         "FLIGHT_MODE_OFF": "飞行模式已关闭",
-        "FLIGHT_MODE_ON": "飞行模式已开启"
+        "FLIGHT_MODE_ON": "飞行模式已开启",
+        "LOCAL_VOICE_MODE_ON": "本地语音模式 已开启",
+        "LOCAL_VOICE_MODE_OFF": "本地语音模式 已关闭"
     }
 }

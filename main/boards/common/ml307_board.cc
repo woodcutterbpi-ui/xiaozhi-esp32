@@ -2,6 +2,7 @@
 
 #include "audio_codec.h"
 #include "display.h"
+#include "application.h"
 
 #include <esp_log.h>
 #include <esp_timer.h>
@@ -261,6 +262,9 @@ std::string Ml307Board::GetDeviceStatusJson() {
         cJSON_AddStringToObject(network, "signal", "strong");
     }
     cJSON_AddItemToObject(root, "network", network);
+
+    // Local voice mode
+    cJSON_AddBoolToObject(root, "local_voice_mode", Application::GetInstance().IsLocalVoiceMode());
 
     auto json_str = cJSON_PrintUnformatted(root);
     std::string json(json_str);

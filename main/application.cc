@@ -85,6 +85,10 @@ void Application::Initialize() {
     };
     audio_service_.SetCallbacks(callbacks);
 
+    // Load local voice mode setting from NVS
+    Settings settings("device", true);
+    local_voice_mode_ = settings.GetBool("local_voice_mode", false);
+
     // Add state change listeners
     state_machine_.AddStateChangeListener([this](DeviceState old_state, DeviceState new_state) {
         xEventGroupSetBits(event_group_, MAIN_EVENT_STATE_CHANGED);
@@ -219,6 +223,9 @@ void Application::Run() {
 
         if (bits & MAIN_EVENT_SEND_AUDIO) {
             while (auto packet = audio_service_.PopPacketFromSendQueue()) {
+                if (local_voice_mode_) {
+                    break;
+                }
                 if (protocol_ && !protocol_->SendAudio(std::move(packet))) {
                     break;
                 }
@@ -692,6 +699,11 @@ void Application::HandleToggleChatEvent() {
         return;
     }
 
+    if (local_voice_mode_) {
+        ESP_LOGI(TAG, "Local voice mode is enabled, cannot toggle chat");
+        return;
+    }
+
     if (state == kDeviceStateIdle) {
         ListeningMode mode = GetDefaultListeningMode();
         if (!protocol_->IsAudioChannelOpened()) {
@@ -741,7 +753,12 @@ void Application::HandleStartListeningEvent() {
         ESP_LOGE(TAG, "Protocol not initialized");
         return;
     }
-    
+
+    if (local_voice_mode_) {
+        ESP_LOGI(TAG, "Local voice mode is enabled, cannot start listening");
+        return;
+    }
+
     if (state == kDeviceStateIdle) {
         if (!protocol_->IsAudioChannelOpened()) {
             SetDeviceState(kDeviceStateConnecting);
@@ -781,6 +798,25 @@ void Application::HandleWakeWordDetectedEvent() {
     auto state = GetDeviceState();
     auto wake_word = audio_service_.GetLastWakeWord();
     ESP_LOGI(TAG, "Wake word detected: %s (state: %d)", wake_word.c_str(), (int)state);
+
+    // Handle local command words (always processed, regardless of local voice mode)
+    if (wake_word == "local_voice_mode_on") {
+        SetLocalVoiceMode(true);
+        audio_service_.EnableWakeWordDetection(true);
+        return;
+    }
+    if (wake_word == "local_voice_mode_off") {
+        SetLocalVoiceMode(false);
+        audio_service_.EnableWakeWordDetection(true);
+        return;
+    }
+
+    // Skip normal wake word handling when local voice mode is enabled
+    if (local_voice_mode_) {
+        ESP_LOGI(TAG, "Local voice mode enabled, ignoring wake word: %s", wake_word.c_str());
+        audio_service_.EnableWakeWordDetection(true);
+        return;
+    }
 
     if (state == kDeviceStateIdle) {
         audio_service_.EncodeWakeWord();
@@ -1018,6 +1054,10 @@ void Application::WakeWordInvoke(const std::string& wake_word) {
         return;
     }
 
+    if (local_voice_mode_) {
+        return;
+    }
+
     auto state = GetDeviceState();
     
     if (state == kDeviceStateIdle) {
@@ -1101,6 +1141,24 @@ void Application::SetAecMode(AecMode mode) {
 
 void Application::PlaySound(const std::string_view& sound) {
     audio_service_.PlaySound(sound);
+}
+
+void Application::SetLocalVoiceMode(bool enable) {
+    local_voice_mode_ = enable;
+    Settings settings("device", true);
+    settings.SetBool("local_voice_mode", enable);
+
+    Schedule([this, enable]() {
+        auto display = Board::GetInstance().GetDisplay();
+        if (enable) {
+            if (protocol_ && protocol_->IsAudioChannelOpened()) {
+                protocol_->CloseAudioChannel();
+            }
+            display->SetChatMessage("system", Lang::Strings::LOCAL_VOICE_MODE_ON);
+        } else {
+            display->SetChatMessage("system", Lang::Strings::LOCAL_VOICE_MODE_OFF);
+        }
+    });
 }
 
 void Application::ResetProtocol() {

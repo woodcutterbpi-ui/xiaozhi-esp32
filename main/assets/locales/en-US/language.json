@@ -54,6 +54,8 @@
         "FOUND_NEW_ASSETS": "Found new assets: %s",
         "DOWNLOAD_ASSETS_FAILED": "Failed to download assets",
         "LOADING_ASSETS": "Loading assets...",
-        "HELLO_MY_FRIEND": "Hello, my friend!"
+        "HELLO_MY_FRIEND": "Hello, my friend!",
+        "LOCAL_VOICE_MODE_ON": "Local Voice Mode ON",
+        "LOCAL_VOICE_MODE_OFF": "Local Voice Mode OFF"
     }
 }

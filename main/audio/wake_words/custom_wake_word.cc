@@ -176,8 +176,9 @@ void CustomWakeWord::Feed(const std::vector<int16_t>& data) {
                 ESP_LOGI(TAG, "Custom wake word detected: command_id=%d, string=%s, prob=%f", 
                         mn_result->command_id[i], mn_result->string, mn_result->prob[i]);
                 auto& command = commands_[mn_result->command_id[i] - 1];
-                if (command.action == "wake") {
+                if (command.action == "wake" || command.action == "local") {
                     last_detected_wake_word_ = command.text;
+                    is_local_command_ = (command.action == "local");
                     running_ = false;
                     input_buffer_.clear();
                     
