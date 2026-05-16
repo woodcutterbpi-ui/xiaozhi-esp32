@@ -44,12 +44,31 @@ Application::Application() {
         .skip_unhandled_events = true
     };
     esp_timer_create(&clock_timer_args, &clock_timer_handle_);
+
+    esp_timer_create_args_t emotion_reset_timer_args = {
+        .callback = [](void* arg) {
+            Application* app = (Application*)arg;
+            app->Schedule([]() {
+                auto display = Board::GetInstance().GetDisplay();
+                display->SetEmotion("neutral");
+            });
+        },
+        .arg = this,
+        .dispatch_method = ESP_TIMER_TASK,
+        .name = "emotion_reset",
+        .skip_unhandled_events = true
+    };
+    esp_timer_create(&emotion_reset_timer_args, &emotion_reset_timer_handle_);
 }
 
 Application::~Application() {
     if (clock_timer_handle_ != nullptr) {
         esp_timer_stop(clock_timer_handle_);
         esp_timer_delete(clock_timer_handle_);
+    }
+    if (emotion_reset_timer_handle_ != nullptr) {
+        esp_timer_stop(emotion_reset_timer_handle_);
+        esp_timer_delete(emotion_reset_timer_handle_);
     }
     vEventGroupDelete(event_group_);
 }
@@ -801,11 +820,13 @@ void Application::HandleWakeWordDetectedEvent() {
 
     // Handle local command words (always processed, regardless of local voice mode)
     if (wake_word == "local_voice_mode_on") {
+        audio_service_.PlaySound(Lang::Sounds::OGG_OK);
         SetLocalVoiceMode(true);
         audio_service_.EnableWakeWordDetection(true);
         return;
     }
     if (wake_word == "local_voice_mode_off") {
+        audio_service_.PlaySound(Lang::Sounds::OGG_OK);
         SetLocalVoiceMode(false);
         audio_service_.EnableWakeWordDetection(true);
         return;
@@ -813,7 +834,23 @@ void Application::HandleWakeWordDetectedEvent() {
 
     // Skip normal wake word handling when local voice mode is enabled
     if (local_voice_mode_) {
+        // Play animation command word (play_xxx → SetEmotion("xxx"))
+        if (wake_word.size() > 5 && wake_word.compare(0, 5, "play_") == 0) {
+            auto display = Board::GetInstance().GetDisplay();
+            std::string emotion_name = wake_word.substr(5);  // "play_dance" → "dance"
+            display->SetEmotion(emotion_name.c_str());
+            audio_service_.PlaySound(Lang::Sounds::OGG_OK);
+
+            // Reset to neutral after 5 seconds
+            esp_timer_stop(emotion_reset_timer_handle_);
+            esp_timer_start_once(emotion_reset_timer_handle_, 5000000);
+
+            audio_service_.EnableWakeWordDetection(true);
+            return;
+        }
+
         ESP_LOGI(TAG, "Local voice mode enabled, ignoring wake word: %s", wake_word.c_str());
+        audio_service_.PlaySound(Lang::Sounds::OGG_WAKE);
         audio_service_.EnableWakeWordDetection(true);
         return;
     }

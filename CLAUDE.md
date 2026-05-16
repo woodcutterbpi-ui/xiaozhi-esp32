@@ -16,6 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Building & Flashing
 
 ```bash
+source ~/.espressif/tools/activate_idf_v5.5.4.sh 
 # Set target chip (first time or when switching targets)
 idf.py set-target esp32s3     # or esp32c3, esp32p4, etc.
 
