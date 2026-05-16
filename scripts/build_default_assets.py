@@ -903,12 +903,24 @@ def main():
                     "command": custom_wake_word_config['wake_word'],
                     "text": custom_wake_word_config['display'],
                     "action": "wake"
+                },
+                # Local voice mode commands (built-in, always added)
+                {
+                    "command": "local voice",
+                    "text": "local_voice_mode_on",
+                    "action": "local"
+                },
+                {
+                    "command": "exit local",
+                    "text": "local_voice_mode_off",
+                    "action": "local"
                 }
             ]
         }
         print(f"  custom wake word: {custom_wake_word_config['wake_word']} ({custom_wake_word_config['display']})")
         print(f"  wake word language: {language}")
         print(f"  wake word threshold: {custom_wake_word_config['threshold']}")
+        print(f"  local voice mode commands added")
     
     # Check if we have anything to build
     if not wakenet_model_paths and not multinet_model_paths and not text_font_path and not emoji_collection_path and not extra_files_path and not multinet_model_info:
